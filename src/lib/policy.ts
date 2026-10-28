@@ -1,6 +1,7 @@
 import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { cache } from "react";
 import { isPreview } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -31,7 +32,8 @@ export async function loadPolicy(lang: PolicyLang, version = CURRENT_POLICY_VERS
 export type Acceptance = { acceptedAt: string; language: PolicyLang; typedName: string; version: string };
 
 /** The signed-in agent's acceptance of the current policy, or null. */
-export async function getMyAcceptance(agentId: string): Promise<Acceptance | null> {
+// Cached per request: layouts and pages both ask.
+export const getMyAcceptance = cache(async (agentId: string): Promise<Acceptance | null> => {
   if (isPreview) return { acceptedAt: new Date().toISOString(), language: "en", typedName: "Sample Agent", version: CURRENT_POLICY_VERSION };
   const supabase = await createClient();
   const { data } = await supabase
@@ -41,7 +43,7 @@ export async function getMyAcceptance(agentId: string): Promise<Acceptance | nul
     .eq("policy_version", CURRENT_POLICY_VERSION)
     .maybeSingle();
   return data ? { acceptedAt: data.accepted_at, language: policyLang(data.language), typedName: data.typed_name, version: data.policy_version } : null;
-}
+});
 
 /** "2026-10-27" → "27 Oct 2026" for display. */
 export function versionLabel(v = CURRENT_POLICY_VERSION) {

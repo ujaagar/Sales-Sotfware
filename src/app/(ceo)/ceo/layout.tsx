@@ -7,12 +7,12 @@ import { LogoutButton } from "@/components/logout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar } from "@/components/ui/misc";
 import { requireCeo } from "@/lib/auth";
-import { getCeoDashboard } from "@/lib/data";
+import { getCeoBadges } from "@/lib/data";
 import { getUnreadCount } from "@/lib/data/notifications";
 
 export default async function CeoLayout({ children }: { children: React.ReactNode }) {
   const me = await requireCeo();
-  const [d, unread] = await Promise.all([getCeoDashboard(), getUnreadCount()]);
+  const [d, unread] = await Promise.all([getCeoBadges(), getUnreadCount()]);
 
   const groups: { title?: string; items: NavItem[] }[] = [
     { items: [{ href: "/ceo", label: "Dashboard", icon: "home", exact: true }] },

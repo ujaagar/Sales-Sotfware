@@ -21,8 +21,7 @@ const DESKTOP: NavItem[] = [
 ];
 
 export default async function AgentLayout({ children }: { children: React.ReactNode }) {
-  const me = await requireAgent();
-  const unread = await getUnreadCount();
+  const [me, unread] = await Promise.all([requireAgent(), getUnreadCount()]);
 
   const tabs: NavItem[] = [
     { href: "/dashboard", label: "Home", icon: "home" },

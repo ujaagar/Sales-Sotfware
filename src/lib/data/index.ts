@@ -15,6 +15,7 @@ import {
   getAgentDashboardLive,
   getApprovalLive,
   getCeoDashboardLive,
+  getCeoBadgesLive,
   getDealsLive,
   getLeaderboardLive,
   getLeadsLive,
@@ -56,4 +57,10 @@ export async function getApproval(id: string): Promise<ApprovalDetail | null> {
 
 export async function getPaymentDetail(id: string): Promise<PaymentDetail | null> {
   return isPreview ? samplePaymentDetail(id) : getPaymentDetailLive(id);
+}
+
+export async function getCeoBadges(): Promise<{ pendingApplications: number; pendingApprovals: number; pendingVerifications: number }> {
+  if (!isPreview) return getCeoBadgesLive();
+  const d = sampleCeoDashboard();
+  return { pendingApplications: d.pendingApplications, pendingApprovals: d.pendingApprovals, pendingVerifications: d.pendingVerifications };
 }

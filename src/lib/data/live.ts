@@ -34,12 +34,17 @@ const METHOD_LABEL: Record<string, string> = {
 
 const monthEnd = (month: string) => addMonths(month, 1);
 
-/** The signed-in user's profile, or null. Cached per request. */
+/**
+ * The signed-in user's profile, or null. Cached per request.
+ * getClaims checks the token's signature locally (ES256 keys), so no extra trip to the auth server;
+ * the profile query below still blocks deactivated accounts straight away.
+ */
 export const getViewerLive = cache(async (): Promise<Viewer | null> => {
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return null;
-  const { data: p } = await supabase.from("profiles").select("id, full_name, email, role, is_active").eq("id", auth.user.id).maybeSingle();
+  const { data: auth } = await supabase.auth.getClaims();
+  const userId = auth?.claims?.sub;
+  if (!userId) return null;
+  const { data: p } = await supabase.from("profiles").select("id, full_name, email, role, is_active").eq("id", userId).maybeSingle();
   if (!p || !p.is_active) return null;
   return { id: p.id, name: p.full_name, email: p.email, role: p.role };
 });
@@ -441,4 +446,15 @@ export async function getPaymentDetailLive(id: string): Promise<import("./types"
     recurringRate: deal.recurring_rate_percent === null ? null : Number(deal.recurring_rate_percent),
     commission,
   };
+}
+
+/** Counts for the CEO sidebar badges: three tiny count queries instead of the whole dashboard. */
+export async function getCeoBadgesLive(): Promise<{ pendingApplications: number; pendingApprovals: number; pendingVerifications: number }> {
+  const supabase = await createClient();
+  const [apps, deals, pays] = await Promise.all([
+    supabase.from("agent_applications").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("deals").select("id", { count: "exact", head: true }).eq("status", "pending_approval"),
+    supabase.from("client_payments").select("id", { count: "exact", head: true }).eq("status", "pending_verification").is("refund_of", null),
+  ]);
+  return { pendingApplications: apps.count ?? 0, pendingApprovals: deals.count ?? 0, pendingVerifications: pays.count ?? 0 };
 }
