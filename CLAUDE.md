@@ -151,6 +151,7 @@ Deliver both in-app (bell icon with unread count) and by email. Events:
 - Agent: deal approved or rejected (with reason), payment verified or rejected, payout recorded, month locked with final commission, follow-up date reached for their lead or deal, monthly payment missed by the 10th.
 - Applicant: invite link on approval, rejection notice.
 - The daily job runs at 9:00 AM Asia/Karachi (Vercel cron `/api/cron/daily`, protected by `CRON_SECRET`): follow-up reminders and monthly-due checks.
+- Hosting: Vercel project `sales-sotfware` (GitHub `ujaagar/Sales-Sotfware`, branch `main` auto-deploys), live at https://sales.ujaagardigital.com (CNAME in Cloudflare, DNS only). Functions run in `sin1` (Singapore) because the Supabase database is in AWS ap-southeast-1; keep them in the same region.
 
 ## Reports and Exports (CEO)
 - CEO dashboard: total collected this month, commission liability (estimated + locked − paid), pending deal approvals, pending payment verifications, agent performance, sales by service, monthly deals due/missed this month.
