@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { changePassword, markAllRead, updateProfile } from "@/app/actions/account";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/form";
+import { Turnstile } from "@/components/turnstile";
+import { PASSWORD_HINT } from "@/lib/security";
 import { profileSchema } from "@/lib/validation";
 import type { z } from "zod";
 
@@ -77,6 +79,8 @@ export function ProfileForm({ initial }: { initial: ProfileInput }) {
 export function PasswordForm() {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [round, setRound] = useState(0);
   return (
     <form
       className="space-y-4"
@@ -86,7 +90,8 @@ export function PasswordForm() {
         const fd = new FormData(form);
         start(async () => {
           setError(null);
-          const res = await changePassword(String(fd.get("current")), String(fd.get("next")), String(fd.get("confirm")));
+          const res = await changePassword(String(fd.get("current")), String(fd.get("next")), String(fd.get("confirm")), token);
+          setRound((r) => r + 1);
           if (res.error) return setError(res.error);
           form.reset();
           toast.success("Password changed");
@@ -97,15 +102,16 @@ export function PasswordForm() {
         <Input id="pw-cur" name="current" type="password" autoComplete="current-password" />
       </Field>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="New password" htmlFor="pw-new" hint="At least 8 characters.">
+        <Field label="New password" htmlFor="pw-new" hint={PASSWORD_HINT}>
           <Input id="pw-new" name="next" type="password" autoComplete="new-password" />
         </Field>
         <Field label="Type it again" htmlFor="pw-confirm">
           <Input id="pw-confirm" name="confirm" type="password" autoComplete="new-password" />
         </Field>
       </div>
+      <Turnstile onToken={setToken} resetSignal={round} />
       {error && <p className="rounded-[12px] bg-[var(--status-bad-bg)] px-3.5 py-2.5 text-sm text-[var(--status-bad-fg)]">{error}</p>}
-      <Button type="submit" variant="secondary" disabled={pending}>
+      <Button type="submit" variant="secondary" disabled={pending || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !token)}>
         <KeyRound /> {pending ? "Saving…" : "Change password"}
       </Button>
     </form>

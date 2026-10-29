@@ -5,24 +5,38 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { findDuplicate } from "@/lib/agents";
 import { isPreview } from "@/lib/env";
+import { checkAttempts } from "@/lib/attempts";
 import { checkInvite } from "@/lib/invites";
+import { LOGIN_LIMIT, passwordProblem } from "@/lib/security";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { applySchema, loginSchema } from "@/lib/validation";
 
 export type ActionResult = { error?: string; ok?: boolean; preview?: boolean };
 
-export async function signIn(portal: "agent" | "ceo", raw: unknown): Promise<ActionResult> {
+export async function signIn(portal: "agent" | "ceo", raw: unknown, captchaToken: string | null = null): Promise<ActionResult> {
   const parsed = loginSchema.safeParse(raw);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check your details." };
   if (isPreview) redirect(portal === "ceo" ? "/ceo" : "/dashboard");
 
+  // Brute-force guard: 5 wrong passwords for one email, or 20 from one network, in 15 minutes.
+  const gate = await checkAttempts("login", parsed.data.email, LOGIN_LIMIT);
+  if (gate.locked) return { error: "Too many wrong tries. Wait 15 minutes, or reset your password." };
+
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
+  // The captcha token is checked by Supabase itself once captcha protection is on there.
+  const { data, error } = await supabase.auth.signInWithPassword({ ...parsed.data, options: { captchaToken: captchaToken ?? undefined } });
+  if (error && /captcha/i.test(error.message)) return { error: "The security check failed. Please try again." };
   if (error && (error.code === "user_banned" || /banned/i.test(error.message))) {
+    await gate.record(false);
     return { error: "This account isn't active. Please contact the CEO." };
   }
-  if (error || !data.user) return { error: "Wrong email or password." };
+  if (error || !data.user) {
+    await gate.record(false);
+    if (gate.emailFailures + 1 === LOGIN_LIMIT.perEmail) await alertCeoLockout(parsed.data.email);
+    return { error: "Wrong email or password." };
+  }
+  await gate.record(true);
 
   const { data: profile } = await supabase.from("profiles").select("role, is_active").eq("id", data.user.id).maybeSingle();
   if (!profile || !profile.is_active) {
@@ -38,6 +52,27 @@ export async function signIn(portal: "agent" | "ceo", raw: unknown): Promise<Act
     return { error: "This is the agent portal. CEO, please use the CEO portal (/ceo/login)." };
   }
   redirect(portal === "ceo" ? "/ceo" : "/dashboard");
+}
+
+/** Tells the CEO (in the app) when a real account gets locked by wrong passwords. Not exported. */
+async function alertCeoLockout(email: string) {
+  try {
+    const admin = createAdminClient();
+    const [{ data: target }, { data: ceo }] = await Promise.all([
+      admin.from("profiles").select("full_name, role").eq("email", email.trim().toLowerCase()).maybeSingle(),
+      admin.from("profiles").select("id").eq("role", "ceo").maybeSingle(),
+    ]);
+    if (!target || !ceo) return;
+    await admin.from("notifications").insert({
+      user_id: ceo.id,
+      type: "security_alert",
+      title: "Login locked after wrong passwords",
+      body: `${LOGIN_LIMIT.perEmail} wrong passwords for ${target.full_name} (${target.role === "ceo" ? "your CEO account" : email}). Login is paused for 15 minutes. If this wasn't them, someone may be guessing the password.`,
+      link: target.role === "ceo" ? "/ceo/security" : "/ceo/agents",
+    });
+  } catch {
+    // An alert failing must never break the login page.
+  }
 }
 
 export async function signOut(): Promise<void> {
@@ -88,7 +123,8 @@ export async function submitApplication(raw: unknown, turnstileToken: string | n
 }
 
 export async function setPassword(token: string, password: string, confirm: string): Promise<ActionResult> {
-  if (password.length < 8) return { error: "Use at least 8 characters." };
+  const problem = passwordProblem(password);
+  if (problem) return { error: problem };
   if (password !== confirm) return { error: "The two passwords don't match." };
   const invite = await checkInvite(token);
   if (!invite.ok) return { error: "This link is no longer valid. Ask the CEO for a new one." };

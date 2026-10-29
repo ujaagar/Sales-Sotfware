@@ -42,11 +42,21 @@ const monthEnd = (month: string) => addMonths(month, 1);
 export const getViewerLive = cache(async (): Promise<Viewer | null> => {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getClaims();
-  const userId = auth?.claims?.sub;
-  if (!userId) return null;
-  const { data: p } = await supabase.from("profiles").select("id, full_name, email, role, is_active").eq("id", userId).maybeSingle();
-  if (!p || !p.is_active) return null;
-  return { id: p.id, name: p.full_name, email: p.email, role: p.role };
+  const claims = auth?.claims;
+  if (!claims?.sub) return null;
+  // Profile + whether 2-step is on, read from the database (not from the cookie, which a visitor controls).
+  const { data: rows } = await supabase.rpc("current_viewer");
+  const p = rows?.[0];
+  if (!p || !p.is_active || p.id !== claims.sub) return null;
+  const passedTwoStep = (claims as { aal?: string }).aal === "aal2";
+  return {
+    id: p.id,
+    name: p.full_name,
+    email: p.email,
+    role: p.role,
+    mfaEnrolled: p.mfa_enrolled,
+    mfaPending: p.mfa_enrolled && !passedTwoStep,
+  };
 });
 
 type DealJoin = {

@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { setPassword } from "@/app/(auth)/actions";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/form";
+import { PASSWORD_HINT } from "@/lib/security";
 
 export function SetPasswordForm({ token, email }: { token: string; email: string }) {
   const [pending, start] = useTransition();
@@ -45,7 +46,7 @@ export function SetPasswordForm({ token, email }: { token: string; email: string
       <Field label="Email (your login)" htmlFor="email">
         <Input id="email" value={email} readOnly className="bg-muted" />
       </Field>
-      <Field label="New password" htmlFor="password" required hint="At least 8 characters.">
+      <Field label="New password" htmlFor="password" required hint={PASSWORD_HINT}>
         <Input id="password" name="password" type="password" autoComplete="new-password" minLength={8} />
       </Field>
       <Field label="Type it again" htmlFor="confirm" required>

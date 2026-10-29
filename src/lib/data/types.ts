@@ -1,7 +1,8 @@
 // View models shared by the pages. Filled from Supabase, or from sample data in preview mode.
 import type { DealType } from "@/lib/commission";
 
-export type Viewer = { id: string; name: string; email: string; role: "ceo" | "agent" };
+/** mfaEnrolled: 2-step is on. mfaPending: it is on but this session has not entered the code yet. */
+export type Viewer = { id: string; name: string; email: string; role: "ceo" | "agent"; mfaEnrolled?: boolean; mfaPending?: boolean };
 
 export type LeadStatus = "new" | "contacted" | "interested" | "not_interested" | "converted" | "lost";
 export type DealStatus = "pending_approval" | "approved" | "rejected" | "completed" | "cancelled";

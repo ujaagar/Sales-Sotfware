@@ -265,6 +265,33 @@ export type Database = {
         }
         Relationships: []
       }
+      auth_attempts: {
+        Row: {
+          created_at: string
+          email_hash: string
+          id: number
+          ip_hash: string
+          kind: string
+          success: boolean
+        }
+        Insert: {
+          created_at?: string
+          email_hash: string
+          id?: never
+          ip_hash: string
+          kind: string
+          success?: boolean
+        }
+        Update: {
+          created_at?: string
+          email_hash?: string
+          id?: never
+          ip_hash?: string
+          kind?: string
+          success?: boolean
+        }
+        Relationships: []
+      }
       client_owner_history: {
         Row: {
           agent_id: string
@@ -1151,6 +1178,17 @@ export type Database = {
     Functions: {
       ceo_id: { Args: never; Returns: string }
       check_contact: { Args: { p_phone: string }; Returns: string }
+      current_viewer: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean
+          mfa_enrolled: boolean
+          role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
       fmt_pkr: { Args: { v: number }; Returns: string }
       is_active_agent: { Args: never; Returns: boolean }
       is_ceo: { Args: never; Returns: boolean }

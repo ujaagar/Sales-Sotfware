@@ -14,6 +14,10 @@ create function auth.uid() returns uuid language sql stable as $$
   select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 create function auth.role() returns text language sql stable as $$
   select current_setting('request.jwt.claim.role', true) $$;
+create function auth.jwt() returns jsonb language sql stable as $$
+  select jsonb_build_object('sub', current_setting('request.jwt.claim.sub', true),
+                            'aal', nullif(current_setting('request.jwt.claim.aal', true), '')) $$;
+create table auth.mfa_factors (id uuid primary key default gen_random_uuid(), user_id uuid not null, status text not null);
 create schema storage;
 create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
 create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, owner uuid);
@@ -55,9 +59,10 @@ export async function addUser(db: PGlite, role: "ceo" | "agent", name: string, a
 }
 
 /** Runs fn as a signed-in user (role authenticated, auth.uid() = userId), inside a transaction. */
-export async function as<T>(db: PGlite, userId: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
+export async function as<T>(db: PGlite, userId: string, fn: (tx: Tx) => Promise<T>, opts: { aal?: "aal1" | "aal2" } = {}): Promise<T> {
   return db.transaction(async (tx) => {
     await tx.query(`select set_config('request.jwt.claim.sub', $1, true)`, [userId]);
+    await tx.query(`select set_config('request.jwt.claim.aal', $1, true)`, [opts.aal ?? "aal1"]);
     await tx.query(`select set_config('request.jwt.claim.role', 'authenticated', true)`);
     await tx.exec("set local role authenticated");
     return fn(tx);

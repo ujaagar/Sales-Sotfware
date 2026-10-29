@@ -85,5 +85,12 @@ export async function GET(req: Request) {
 
   // 3. Email whatever is waiting.
   result.emails = await flushNotificationEmails();
+
+  // Login and application attempts are only needed for recent lockouts; keep 30 days.
+  const cutoff = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  await Promise.all([
+    admin.from("auth_attempts").delete().lt("created_at", cutoff),
+    admin.from("application_attempts").delete().lt("created_at", cutoff),
+  ]);
   return Response.json({ ok: true, date: today, ...result });
 }

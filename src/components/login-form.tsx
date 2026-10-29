@@ -7,12 +7,16 @@ import { useForm } from "react-hook-form";
 import { signIn } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/form";
+import { Turnstile } from "@/components/turnstile";
 import { loginSchema, type LoginInput } from "@/lib/validation";
 
 export function LoginForm({ portal }: { portal: "agent" | "ceo" }) {
   const [pending, start] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   const [show, setShow] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [round, setRound] = useState(0);
+  const needsToken = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const {
     register,
     handleSubmit,
@@ -22,8 +26,11 @@ export function LoginForm({ portal }: { portal: "agent" | "ceo" }) {
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
     start(async () => {
-      const res = await signIn(portal, values);
-      if (res?.error) setServerError(res.error);
+      const res = await signIn(portal, values, token);
+      if (res?.error) {
+        setServerError(res.error);
+        setRound((r) => r + 1);
+      }
     });
   });
 
@@ -52,13 +59,14 @@ export function LoginForm({ portal }: { portal: "agent" | "ceo" }) {
           </button>
         </div>
       </Field>
+      <Turnstile onToken={setToken} resetSignal={round} />
       {serverError && (
         <p role="alert" className="rounded-[12px] bg-[var(--status-bad-bg)] px-3.5 py-2.5 text-sm text-[var(--status-bad-fg)]">
           {serverError}
         </p>
       )}
-      <Button type="submit" size="lg" className="w-full" disabled={pending}>
-        <LogIn /> {pending ? "Logging in…" : "Log in"}
+      <Button type="submit" size="lg" className="w-full" disabled={pending || (needsToken && !token)}>
+        <LogIn /> {pending ? "Logging in…" : needsToken && !token ? "Checking you're human…" : "Log in"}
       </Button>
     </form>
   );

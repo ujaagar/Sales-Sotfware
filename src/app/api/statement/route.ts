@@ -6,6 +6,7 @@ import { renderStatement } from "@/lib/pdf/statement";
 export async function GET(req: Request) {
   const me = await getViewerLive();
   if (!me) return new Response("Please log in.", { status: 401 });
+  if (me.mfaPending) return new Response("Enter your 2-step code first.", { status: 401 });
   const url = new URL(req.url);
   const month = url.searchParams.get("month") ?? "";
   if (!/^\d{4}-\d{2}-01$/.test(month)) return new Response("Choose a month.", { status: 400 });

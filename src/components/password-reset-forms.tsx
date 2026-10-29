@@ -5,6 +5,8 @@ import { useState, useTransition } from "react";
 import { requestPasswordReset, setNewPassword } from "@/app/actions/password";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/form";
+import { Turnstile } from "@/components/turnstile";
+import { PASSWORD_HINT } from "@/lib/security";
 
 function Err({ error }: { error: string | null }) {
   return error ? (
@@ -18,6 +20,9 @@ export function ForgotForm() {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [round, setRound] = useState(0);
+  const needsToken = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   if (sent)
     return (
       <div className="rounded-[16px] border border-border bg-card p-6 text-center">
@@ -34,7 +39,8 @@ export function ForgotForm() {
         const email = String(new FormData(e.currentTarget).get("email") ?? "");
         start(async () => {
           setError(null);
-          const res = await requestPasswordReset(email);
+          const res = await requestPasswordReset(email, token);
+          setRound((r) => r + 1);
           if (res.error) setError(res.error);
           else setSent(true);
         });
@@ -43,8 +49,9 @@ export function ForgotForm() {
       <Field label="Email" htmlFor="email">
         <Input id="email" name="email" type="email" inputMode="email" autoComplete="email" />
       </Field>
+      <Turnstile onToken={setToken} resetSignal={round} />
       <Err error={error} />
-      <Button type="submit" size="lg" className="w-full" disabled={pending}>
+      <Button type="submit" size="lg" className="w-full" disabled={pending || (needsToken && !token)}>
         <Send /> {pending ? "Sending…" : "Send reset link"}
       </Button>
     </form>
@@ -84,7 +91,7 @@ export function ResetForm() {
         });
       }}
     >
-      <Field label="New password" htmlFor="password" hint="At least 8 characters.">
+      <Field label="New password" htmlFor="password" hint={PASSWORD_HINT}>
         <Input id="password" name="password" type="password" autoComplete="new-password" />
       </Field>
       <Field label="Type it again" htmlFor="confirm">

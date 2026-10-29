@@ -4,14 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity, BadgeCheck, BarChart3, Briefcase, CalendarCheck, Home, LayoutGrid, Percent, Plus, Receipt,
-  Settings, ShoppingBag, Tags, UserPlus, Users, Wallet,
+  Settings, ShieldCheck, ShoppingBag, Tags, UserPlus, Users, Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ICONS = {
   activity: Activity, approvals: BadgeCheck, chart: BarChart3, briefcase: Briefcase, calendar: CalendarCheck,
   home: Home, grid: LayoutGrid, percent: Percent, plus: Plus, receipt: Receipt, settings: Settings,
-  bag: ShoppingBag, tags: Tags, userPlus: UserPlus, users: Users, wallet: Wallet,
+  bag: ShoppingBag, shield: ShieldCheck, tags: Tags, userPlus: UserPlus, users: Users, wallet: Wallet,
 };
 export type IconName = keyof typeof ICONS;
 

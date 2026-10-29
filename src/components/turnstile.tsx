@@ -14,12 +14,16 @@ declare global {
   }
 }
 
-/** Cloudflare Turnstile captcha. Calls onToken with the token (or null when it expires). */
-export function Turnstile({ onToken }: { onToken: (token: string | null) => void }) {
+/**
+ * Cloudflare Turnstile captcha. Calls onToken with the token (or null when it expires).
+ * A token works once: change resetSignal after each submit to get a fresh one.
+ */
+export function Turnstile({ onToken, resetSignal = 0 }: { onToken: (token: string | null) => void; resetSignal?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   useEffect(() => {
+    onToken(null);
     let id: string | null = null;
     let timer: ReturnType<typeof setInterval> | null = null;
     const mount = () => {
@@ -41,7 +45,7 @@ export function Turnstile({ onToken }: { onToken: (token: string | null) => void
       if (timer) clearInterval(timer);
       if (id && window.turnstile) window.turnstile.remove(id);
     };
-  }, [siteKey, onToken]);
+  }, [siteKey, onToken, resetSignal]);
 
   if (!siteKey) return null;
   return (

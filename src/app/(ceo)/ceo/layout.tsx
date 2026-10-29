@@ -46,6 +46,7 @@ export default async function CeoLayout({ children }: { children: React.ReactNod
         { href: "/ceo/my-sales", label: "My Sales", icon: "bag" },
         { href: "/sales-agent-policy", label: "Agent policy", icon: "approvals" },
         { href: "/ceo/services", label: "Services", icon: "tags" },
+        { href: "/ceo/security", label: "Security", icon: "shield" },
         { href: "/ceo/settings", label: "Settings", icon: "settings" },
       ],
     },

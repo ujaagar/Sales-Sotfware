@@ -184,6 +184,11 @@ Do not add screens or features beyond this list unless asked.
 - Amounts always as `Rs 125,000` (international thousands grouping). Dates as `26 Oct 2026`.
 
 ## Security Rules
+- **Login protection:** Cloudflare Turnstile on login, forgot-password, change-password and apply. The login/reset token is passed to Supabase (`captchaToken`) and checked there once captcha protection is on in Supabase; do not also verify it in our code (a token works once). Our own limits in `auth_attempts`: 5 wrong passwords per email or 20 per network in 15 min (`LOGIN_LIMIT`), 3 resets per email per hour; the CEO gets an in-app alert when a real account is locked.
+- **CEO 2-step (TOTP):** set up at `/ceo/security`, entered at `/ceo/verify` (outside the CEO layout). `getViewerLive` reads `current_viewer()` (profile + `mfa_enrolled`) and the verified JWT `aal`; `requireCeo` sends `mfaPending` sessions to `/ceo/verify`; API routes return 401. In the database `is_ceo()` is false for an `aal1` session once the CEO has a verified factor. Lost phone: remove the factor in Supabase → Authentication → Users.
+- **Passwords:** `passwordProblem()` in `src/lib/security.ts` (10+ chars, letters and numbers). Changing a password checks the current one on a throwaway client and then logs out other sessions.
+- **Headers:** set in `next.config.ts` (HSTS, no framing, nosniff, referrer, permissions). Exports pass every cell through `cellSafe()`; redirects use `safePath()`.
+- Migration `20261029120000_security.sql` was run by the owner in the Supabase SQL editor, so it is not in the remote migration history.
 - RLS enabled on **every** table, with policies written and tested for both roles. Add a test that an agent cannot read another agent's rows.
 - Never expose the Supabase service role key to the client. Use it only in server code.
 - **Secrets:** the owner puts all keys and passwords into `.env.local` himself. Never ask for secrets to be pasted into chat; point to `.env.example` instead.

@@ -35,3 +35,11 @@ export function createAdminClient() {
   if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY is missing in .env.local.");
   return createSupabaseClient<Database>(URL, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
+
+/**
+ * A throwaway anon client with no cookies, used only to check a user's current password
+ * without touching their real session. Sign it out with scope "local" afterwards.
+ */
+export function createStatelessClient() {
+  return createSupabaseClient<Database>(URL, ANON, { auth: { persistSession: false, autoRefreshToken: false } });
+}

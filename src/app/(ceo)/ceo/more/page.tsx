@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Percent,
   Settings,
+  ShieldCheck,
   ShoppingBag,
   Tags,
   UserPlus,
@@ -17,13 +18,13 @@ import { LogoutButton } from "@/components/logout-button";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/misc";
 import { requireCeo } from "@/lib/auth";
-import { getCeoDashboard } from "@/lib/data";
+import { getCeoBadges } from "@/lib/data";
 
 export const metadata: Metadata = { title: "More" };
 
 export default async function CeoMorePage() {
   await requireCeo();
-  const d = await getCeoDashboard();
+  const d = await getCeoBadges();
   const links = [
     { href: "/ceo/applications", label: "Agent applications", icon: UserPlus, badge: d.pendingApplications },
     { href: "/ceo/agents", label: "Agents", icon: Users },
@@ -34,6 +35,7 @@ export default async function CeoMorePage() {
     { href: "/ceo/activity", label: "Activity log", icon: Activity },
     { href: "/ceo/my-sales", label: "My Sales", icon: ShoppingBag },
     { href: "/ceo/services", label: "Services", icon: Tags },
+    { href: "/ceo/security", label: "Security", icon: ShieldCheck },
     { href: "/ceo/settings", label: "Settings", icon: Settings },
   ];
   return (

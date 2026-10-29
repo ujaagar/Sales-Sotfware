@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, Receipt, UserPlus } from "lucide-react";
+import { ArrowRight, BadgeCheck, Receipt, ShieldAlert, UserPlus } from "lucide-react";
 import { CollectedChart } from "@/components/charts/collected-chart";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Avatar, PageHeader, Progress, StatTile } from "@/components/ui/misc";
@@ -44,6 +44,15 @@ export default async function CeoDashboardPage() {
   return (
     <div className="space-y-5 md:space-y-6">
       <PageHeader title={`Good day, ${me.name.split(" ")[0]}`} description={`Company overview · ${formatMonth(d.month)}`} />
+      {!me.mfaEnrolled && (
+        <Link
+          href="/ceo/security"
+          className="flex items-center gap-3 rounded-[16px] border border-[var(--status-pending-fg)]/30 bg-[var(--status-pending-bg)] p-4 text-[var(--status-pending-fg)] hover:underline"
+        >
+          <ShieldAlert className="size-5 shrink-0" aria-hidden />
+          <span className="text-sm font-medium">Protect your CEO account: turn on 2-step verification (2 minutes).</span>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         <StatTile
